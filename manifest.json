@@ -1,0 +1,11 @@
+{
+	"id": "kindle-scribe-notes-sync",
+	"name": "Kindle Scribe Notes Sync",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "Synchronizes notes from Kindle Scribe into Obsidian.",
+	"author": "Obsidian",
+	"authorUrl": "https://k4rnaj1k.space/about",
+	"fundingUrl": "https://donatello.to/k4rnaj1k",
+	"isDesktopOnly": true
+}
