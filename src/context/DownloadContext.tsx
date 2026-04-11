@@ -38,7 +38,7 @@ export const DownloadProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
         });
 
-        return () => unsub();
+        return () => { unsub(); };
     }, [refresh]);
 
     return (
