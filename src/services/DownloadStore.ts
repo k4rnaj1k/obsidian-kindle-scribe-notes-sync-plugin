@@ -20,7 +20,7 @@ function openDB(): Promise<IDBDatabase> {
             }
         };
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+        req.onerror = () => reject(new Error(req.error?.message ?? 'Failed to open IndexedDB'));
     });
 }
 
@@ -30,7 +30,7 @@ export async function recordDownload(record: DownloadRecord): Promise<void> {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         tx.objectStore(STORE_NAME).put(record);
         tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
+        tx.onerror = () => { db.close(); reject(new Error(tx.error?.message ?? 'Failed to write to IndexedDB')); };
     });
 }
 
@@ -40,7 +40,7 @@ export async function getRecord(id: string): Promise<DownloadRecord | undefined>
         const tx = db.transaction(STORE_NAME, 'readonly');
         const req = tx.objectStore(STORE_NAME).get(id);
         req.onsuccess = () => { db.close(); resolve(req.result as DownloadRecord | undefined); };
-        req.onerror = () => { db.close(); reject(req.error); };
+        req.onerror = () => { db.close(); reject(new Error(req.error?.message ?? 'Failed to read from IndexedDB')); };
     });
 }
 
@@ -55,7 +55,7 @@ export async function getAllRecords(): Promise<Map<string, DownloadRecord>> {
             (req.result as DownloadRecord[]).forEach(r => map.set(r.id, r));
             resolve(map);
         };
-        req.onerror = () => { db.close(); reject(req.error); };
+        req.onerror = () => { db.close(); reject(new Error(req.error?.message ?? 'Failed to read all records from IndexedDB')); };
     });
 }
 
