@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { FileData, SortOrder } from "types/Notebook";
 import { useNotebook } from "../util/loadNotebookData";
 import { jobManager } from "pool";
-import { AlertTriangle, Bot, CheckCircle, Download } from "lucide-react";
+import { Bot, CheckCircle, Download } from "lucide-react";
 import { useSettings } from "context/SettingsContext";
 import { Tooltip } from "react-tooltip";
 import { useDownloadStore } from "context/DownloadContext";
-import { toMs } from "services/DownloadStore";
+import { DownloadRecord } from "services/DownloadStore";
 
 const RenderJobProgress = ({ percentage }: { percentage: number }) => {
     const filled = Math.round(percentage / 10);
@@ -25,23 +25,7 @@ const DownloadStatus = ({ file }: { file: FileData }) => {
 
     if (!record) return null;
 
-    const apiModTime = file.lastModifiedDate ?? file.createdDate;
-    const hasUpdate = apiModTime != null && toMs(apiModTime) > toMs(record.modificationTime);
-
     const downloadedDate = new Date(record.downloadedAt).toLocaleString();
-
-    if (hasUpdate) {
-        return <>
-            <Tooltip id={`update-tooltip-${file.id}`} place="top">
-                Update available — downloaded {downloadedDate}
-            </Tooltip>
-            <AlertTriangle
-                className="status-update"
-                size={16}
-                data-tooltip-id={`update-tooltip-${file.id}`}
-            />
-        </>;
-    }
 
     return <>
         <Tooltip id={`downloaded-tooltip-${file.id}`} place="top">
@@ -88,19 +72,21 @@ const Note = ({ file }: { file: FileData }) => {
     </div>);
 }
 
-const sortFiles = (files: FileData[], sortOrder: SortOrder): FileData[] => {
+const sortFiles = (files: FileData[], sortOrder: SortOrder, records: Map<string, DownloadRecord>): FileData[] => {
     if (sortOrder === 'default') return files;
     return [...files].sort((a, b) => {
         if (sortOrder === 'a-z') return a.title.localeCompare(b.title);
         if (sortOrder === 'z-a') return b.title.localeCompare(a.title);
-        const aDate = a.lastModifiedDate ?? a.createdDate ?? 0;
-        const bDate = b.lastModifiedDate ?? b.createdDate ?? 0;
+        // Use modificationTime captured at download time (from individual notebook API)
+        const aDate = records.get(a.id)?.modificationTime ?? 0;
+        const bDate = records.get(b.id)?.modificationTime ?? 0;
         return sortOrder === 'newest' ? bDate - aDate : aDate - bDate;
     });
 };
 
 export const NotesList = ({ objects, sortOrder = 'default' }: { objects: FileData[], sortOrder?: SortOrder }) => {
-    const sorted = sortFiles(objects, sortOrder);
+    const { records } = useDownloadStore();
+    const sorted = sortFiles(objects, sortOrder, records);
     const renderFolder = (folder: FileData) => {
         return <details className="file-row" style={{ marginRight: 0}}>
             <summary>{folder.title}</summary>

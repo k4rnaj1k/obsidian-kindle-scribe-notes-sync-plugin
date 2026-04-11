@@ -6,8 +6,6 @@ export type FileData = {
     title: string;
     type: 'notebook' | 'folder',
     items: FileData[];
-    lastModifiedDate?: number;
-    createdDate?: number;
 };
 
 export type SortOrder = 'default' | 'newest' | 'oldest' | 'a-z' | 'z-a';
