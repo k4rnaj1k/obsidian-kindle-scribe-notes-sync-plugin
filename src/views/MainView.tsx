@@ -16,10 +16,14 @@ const SORT_LABELS: Record<SortOrder, string> = {
     default: 'Sort: default',
     newest: 'Sort: newest first',
     oldest: 'Sort: oldest first',
+    'a-z': 'Sort: A → Z',
+    'z-a': 'Sort: Z → A',
 };
 
 const SORT_CYCLE: Record<SortOrder, SortOrder> = {
-    default: 'newest',
+    default: 'a-z',
+    'a-z': 'z-a',
+    'z-a': 'newest',
     newest: 'oldest',
     oldest: 'default',
 };

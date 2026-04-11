@@ -91,6 +91,8 @@ const Note = ({ file }: { file: FileData }) => {
 const sortFiles = (files: FileData[], sortOrder: SortOrder): FileData[] => {
     if (sortOrder === 'default') return files;
     return [...files].sort((a, b) => {
+        if (sortOrder === 'a-z') return a.title.localeCompare(b.title);
+        if (sortOrder === 'z-a') return b.title.localeCompare(a.title);
         const aDate = a.lastModifiedDate ?? a.createdDate ?? 0;
         const bDate = b.lastModifiedDate ?? b.createdDate ?? 0;
         return sortOrder === 'newest' ? bDate - aDate : aDate - bDate;

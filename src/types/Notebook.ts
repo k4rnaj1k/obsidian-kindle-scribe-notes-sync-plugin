@@ -10,4 +10,4 @@ export type FileData = {
     createdDate?: number;
 };
 
-export type SortOrder = 'default' | 'newest' | 'oldest';
+export type SortOrder = 'default' | 'newest' | 'oldest' | 'a-z' | 'z-a';
