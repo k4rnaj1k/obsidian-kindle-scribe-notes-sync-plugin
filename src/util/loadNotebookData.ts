@@ -5,6 +5,7 @@ import { getAmazonApi, getChunk } from "./amazonApiUtils";
 import { useSettings } from "context/SettingsContext";
 import { useCallback } from "react";
 import { jobManager } from "pool";
+import { computeHash, recordDownload } from "services/DownloadStore";
 
 type Metadata = {
     "metadata": { "currentPage": number, "modificationTime": number, "title": string, "totalPages": number },
@@ -17,13 +18,19 @@ type UseNotebook = {
     downloadAndProcess: () => void;
 };
 
-/** Fetch all pages and save a PDF. Returns the extracted images as base64. */
+type FetchResult = {
+    images: string[];
+    contentHash: string;
+    modificationTime: number;
+};
+
+/** Fetch all pages and save a PDF. Returns images as base64, a content hash, and the notebook's modificationTime. */
 async function fetchPages(
     app: App,
     fileId: string,
     noteName: string,
     update: (p: number) => void
-): Promise<string[]> {
+): Promise<FetchResult> {
     update(0);
     const pagesData: ArrayBuffer[] = [];
 
@@ -43,18 +50,26 @@ async function fetchPages(
         pagesData.push(chunk);
     }
     notice.hide();
-    const images = await exportImagesFromTar(pagesData.map(page => page.slice(0)));
+    const [images, contentHash] = await Promise.all([
+        exportImagesFromTar(pagesData.map(page => page.slice(0))),
+        computeHash(pagesData),
+    ]);
     await convertTarToPdf(app, pagesData, noteName);
     update(50);
 
-    return images.map(image => arrayBufferToBase64(image.data.buffer as ArrayBuffer));
+    return {
+        images: images.map(image => arrayBufferToBase64(image.data.buffer as ArrayBuffer)),
+        contentHash,
+        modificationTime: metadata.modificationTime,
+    };
 }
 
 export const useNotebook = (fileId: string, noteName: string): UseNotebook => {
     const { app, settings } = useSettings();
 
     const downloadOnlyTask = useCallback(async (update: (p: number) => void) => {
-        await fetchPages(app, fileId, noteName, update);
+        const { contentHash, modificationTime } = await fetchPages(app, fileId, noteName, update);
+        await recordDownload({ id: fileId, title: noteName, downloadedAt: Date.now(), contentHash, modificationTime });
         update(100);
         new Notice(`Downloaded "${noteName}" — PDF saved.`);
     }, [app, fileId, noteName]);
@@ -62,7 +77,7 @@ export const useNotebook = (fileId: string, noteName: string): UseNotebook => {
     const downloadAndProcessTask = useCallback(async (update: (p: number) => void) => {
         const { openRouterKey, model } = settings;
 
-        const images = await fetchPages(app, fileId, noteName, update);
+        const { images, contentHash, modificationTime } = await fetchPages(app, fileId, noteName, update);
         await processNotebookPages(
             app,
             images,
@@ -71,6 +86,7 @@ export const useNotebook = (fileId: string, noteName: string): UseNotebook => {
             openRouterKey,
             model
         );
+        await recordDownload({ id: fileId, title: noteName, downloadedAt: Date.now(), contentHash, modificationTime });
         update(100);
         new Notice(`Note "${noteName}" downloaded and processed.`);
     }, [app, fileId, noteName, settings]);

@@ -47,3 +47,19 @@
     margin-top: 15px;
     align-items: center;
  }
+
+ .file-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+ }
+
+ .status-downloaded {
+    color: var(--color-green);
+    flex-shrink: 0;
+ }
+
+ .status-update {
+    color: var(--color-yellow);
+    flex-shrink: 0;
+ }

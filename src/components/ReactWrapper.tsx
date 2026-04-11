@@ -7,6 +7,7 @@ import { queryClient } from "../util/queryClient";
 import { MainView } from "views/MainView";
 import '../main.css';
 import { JobsContextProvider } from "context/JobContext";
+import { DownloadProvider } from "context/DownloadContext";
 
 export class ReactWrapper extends Modal {
     root: Root | null = null;
@@ -28,7 +29,9 @@ export class ReactWrapper extends Modal {
                 <SettingsProvider settings={this.settings} app={this.app}>
                     <QueryClientProvider client={queryClient}>
                         <JobsContextProvider>
-                            <MainView />
+                            <DownloadProvider>
+                                <MainView />
+                            </DownloadProvider>
                         </JobsContextProvider>
                     </QueryClientProvider>
                 </SettingsProvider>

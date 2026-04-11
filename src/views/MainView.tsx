@@ -6,11 +6,23 @@ import { LoadingComponent } from "components/LoadingComponent";
 import { LoaderCircle, RefreshCcwDot } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { notesService } from "services/NotesService";
-import { FileData } from "types/Notebook";
+import { FileData, SortOrder } from "types/Notebook";
 import { noAmazonCookies } from "../util/amazonApiUtils";
 import { NoCookiesView } from './NoCookiesView';
 
 type RefetchFn = () => Promise<QueryObserverResult<FileData[], Error>>;
+
+const SORT_LABELS: Record<SortOrder, string> = {
+    default: 'Sort: default',
+    newest: 'Sort: newest first',
+    oldest: 'Sort: oldest first',
+};
+
+const SORT_CYCLE: Record<SortOrder, SortOrder> = {
+    default: 'newest',
+    newest: 'oldest',
+    oldest: 'default',
+};
 
 const NotesError = ({ refetch }: { refetch: RefetchFn }) => {
     return <div className="error-text">
@@ -27,12 +39,13 @@ const collectNotes = (files: FileData[]): FileData[] => {
     return files.flatMap(item => item.type == 'folder' ? [...collectNotes(item.items), item] : item);
 }
 
-const NotesControls = ({ contentLoading, refetch, setIsLoggedOut, data }: { contentLoading: boolean, refetch: RefetchFn, setIsLoggedOut: () => void, data: FileData[] }) => {
+const NotesControls = ({ contentLoading, refetch, setIsLoggedOut, data, sortOrder, onSortChange }: { contentLoading: boolean, refetch: RefetchFn, setIsLoggedOut: () => void, data: FileData[], sortOrder: SortOrder, onSortChange: (order: SortOrder) => void }) => {
     const notes = collectNotes(data);
     const files = notes.filter(item => item.type == 'notebook').length;
     const folders = notes.filter(item => item.type == 'folder').length;
     return <div style={{ display: 'grid', gap: '15px', justifyContent: 'end', paddingBottom: '15px', gridAutoFlow: 'column' }}>
         <div>Showing data for {files} notes, {folders} folders in Vault</div>
+        <button onClick={() => onSortChange(SORT_CYCLE[sortOrder])}>{SORT_LABELS[sortOrder]}</button>
         <button disabled={contentLoading} onClick={() => {
             void refetch();
         }}>{contentLoading ? <LoaderCircle className="rotate" /> : <RefreshCcwDot />}</button>
@@ -45,6 +58,7 @@ const NotesControls = ({ contentLoading, refetch, setIsLoggedOut, data }: { cont
 export const MainView = () => {
     const [isLoggedOut, setIsLoggedOut] = useState(false);
     const [hasCookies, setHasCookies] = useState<boolean | null>(null);
+    const [sortOrder, setSortOrder] = useState<SortOrder>('default');
 
     useEffect(() => {
         void noAmazonCookies().then(missing => setHasCookies(!missing));
@@ -68,9 +82,11 @@ export const MainView = () => {
                 data={data || []}
                 contentLoading={contentLoading}
                 setIsLoggedOut={() => setIsLoggedOut(true)}
-                refetch={refetch} />
+                refetch={refetch}
+                sortOrder={sortOrder}
+                onSortChange={setSortOrder} />
             <div className="notes-content">
-                {error ? <NotesError refetch={refetch} /> : contentLoading ? <LoadingComponent /> : <NotesList objects={data} />}
+                {error ? <NotesError refetch={refetch} /> : contentLoading ? <LoadingComponent /> : <NotesList objects={data} sortOrder={sortOrder} />}
             </div>
         </div>
     );
